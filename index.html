@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Rastreador de hábitos e rotina diária">
+    <title>Minha Rotina - Tracker de Hábitos</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        // Aplicar tema salvo antes do render para evitar flash
+        (function() {
+            const savedTheme = localStorage.getItem('minhaRotina_theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const theme = savedTheme || (prefersDark ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', theme);
+        })();
+    </script>
+</head>
+<body>
+    <header class="header">
+        <div class="container header-content">
+            <h1 class="logo">
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/>
+                    <line x1="8" y1="2" x2="8" y2="6"/>
+                    <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                Minha Rotina
+            </h1>
+            <div class="header-stats">
+                <div class="stat">
+                    <span class="stat-value" id="currentStreak">0</span>
+                    <span class="stat-label">Dias em sequência</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value" id="totalCompleted">0</span>
+                    <span class="stat-label">Total concluídos</span>
+                </div>
+            </div>
+            <button class="btn btn-icon theme-toggle" id="themeToggle" aria-label="Alternar tema">
+                <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <circle cx="12" cy="12" r="5"/>
+                    <line x1="12" y1="1" x2="12" y2="3"/>
+                    <line x1="12" y1="21" x2="12" y2="23"/>
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                    <line x1="1" y1="12" x2="3" y2="12"/>
+                    <line x1="21" y1="12" x2="23" y2="12"/>
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+                </svg>
+                <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <main class="main">
+        <div class="container">
+            <!-- Seletor de Data -->
+            <section class="date-navigator" aria-label="Navegação de data">
+                <button class="btn btn-icon btn-date-nav" id="prevDay" aria-label="Dia anterior">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="15 18 9 12 15 6"/>
+                    </svg>
+                </button>
+                <div class="date-display">
+                    <span class="date-weekday" id="dateWeekday">Sábado</span>
+                    <span class="date-day" id="dateDay">25</span>
+                    <span class="date-month-year" id="dateMonthYear">Out 2026</span>
+                </div>
+                <button class="btn btn-icon btn-date-nav" id="nextDay" aria-label="Próximo dia">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="9 18 15 12 9 6"/>
+                    </svg>
+                </button>
+                <button class="btn btn-secondary btn-today" id="goToday">Hoje</button>
+            </section>
+
+            <!-- Gráfico de Pizza + Resumo -->
+            <section class="dashboard-grid">
+                <div class="chart-card">
+                    <h2 class="card-title">Aproveitamento do Dia</h2>
+                    <div class="chart-container">
+                        <canvas id="pieChart" width="200" height="200" aria-label="Gráfico de pizza do aproveitamento"></canvas>
+                        <div class="chart-center">
+                            <span class="chart-percentage" id="chartPercentage">0%</span>
+                            <span class="chart-label">concluído</span>
+                        </div>
+                    </div>
+                    <div class="chart-legend" id="chartLegend"></div>
+                </div>
+
+                <div class="summary-card">
+                    <h2 class="card-title">Resumo de Hoje</h2>
+                    <div class="summary-stats" id="summaryStats">
+                        <div class="summary-item">
+                            <span class="summary-value" id="doneToday">0</span>
+                            <span class="summary-label">Concluídos</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-value" id="pendingToday">0</span>
+                            <span class="summary-label">Pendentes</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-value" id="skippedToday">0</span>
+                            <span class="summary-label">Ignorados</span>
+                        </div>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="dayProgressBar" style="--progress: 0%"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Lista de Hábitos -->
+            <section class="habits-section">
+                <div class="section-header">
+                    <h2 class="section-title">Meus Hábitos</h2>
+                    <button class="btn btn-primary" id="addHabitBtn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Novo Hábito
+                    </button>
+                </div>
+                <ul class="habits-list" id="habitsList" role="list"></ul>
+                <p class="empty-state" id="emptyState" hidden>Nenhum hábito ainda. Clique em "Novo Hábito" para começar!</p>
+            </section>
+
+            <!-- Histórico Semanal -->
+            <section class="weekly-history" aria-label="Histórico da semana">
+                <h2 class="section-title">Esta Semana</h2>
+                <div class="week-grid" id="weekGrid"></div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Modal Novo/Editar Hábito -->
+    <dialog class="modal" id="habitModal">
+        <form class="modal-content" id="habitForm">
+            <header class="modal-header">
+                <h3 id="modalTitle">Novo Hábito</h3>
+                <button type="button" class="btn btn-icon modal-close" aria-label="Fechar">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </header>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="habitName">Nome do hábito</label>
+                    <input type="text" id="habitName" name="habitName" placeholder="Ex: Treinar, Ler, Meditar..." required maxlength="50">
+                </div>
+                <div class="form-group">
+                    <label for="habitIcon">Ícone</label>
+                    <div class="icon-picker" id="iconPicker">
+                        <button type="button" class="icon-option selected" data-icon="dumbbell" aria-label="Academia">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15V5a2 2 0 0 0-2-2H9a2 2 0 0 0-2 2v10"/><path d="M3 19h3.5a2 2 0 0 0 1.8-1.1l1.2-2.2"/><circle cx="18" cy="19" r="2"/><circle cx="6" cy="19" r="2"/></svg>
+                        </button>
+                        <button type="button" class="icon-option" data-icon="book" aria-label="Leitura">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+                        </button>
+                        <button type="button" class="icon-option" data-icon="heart" aria-label="Saúde">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 1-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 1-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 1 0-7.78z"/></svg>
+                        </button>
+                        <button type="button" class="icon-option" data-icon="brain" aria-label="Estudo/Mente">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/><path d="M12 3c-1.5 0-3 .5-3 2v1c0 1.5.5 3 2 3s2-1.5 2-3V5c0-1.5-.5-2-2-2Z"/><path d="M12 16c-1.5 0-3 .5-3 2v1c0 1.5.5 3 2 3s2-1.5 2-3v-1c0-1.5-.5-2-2-2Z"/><path d="M6 11c0-1.5.5-3 2-3s2 1.5 2 3"/><path d="M16 11c0-1.5.5-3 2-3s2 1.5 2 3"/></svg>
+                        </button>
+                        <button type="button" class="icon-option" data-icon="coffee" aria-label="Café/Pausa">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+                        </button>
+                        <button type="button" class="icon-option" data-icon="moon" aria-label="Sono">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                        </button>
+                        <button type="button" class="icon-option" data-icon="droplet" aria-label="Água">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+                        </button>
+                        <button type="button" class="icon-option" data-icon="music" aria-label="Música/Hobby">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                        </button>
+                        <button type="button" class="icon-option" data-icon="code" aria-label="Programação">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="habitColor">Cor</label>
+                    <div class="color-picker" id="colorPicker">
+                        <button type="button" class="color-option selected" data-color="#2563eb" style="--color: #2563eb" aria-label="Azul"></button>
+                        <button type="button" class="color-option" data-color="#10b981" style="--color: #10b981" aria-label="Verde"></button>
+                        <button type="button" class="color-option" data-color="#f59e0b" style="--color: #f59e0b" aria-label="Amarelo"></button>
+                        <button type="button" class="color-option" data-color="#ef4444" style="--color: #ef4444" aria-label="Vermelho"></button>
+                        <button type="button" class="color-option" data-color="#8b5cf6" style="--color: #8b5cf6" aria-label="Roxo"></button>
+                        <button type="button" class="color-option" data-color="#ec4899" style="--color: #ec4899" aria-label="Rosa"></button>
+                        <button type="button" class="color-option" data-color="#06b6d4" style="--color: #06b6d4" aria-label="Ciano"></button>
+                        <button type="button" class="color-option" data-color="#f97316" style="--color: #f97316" aria-label="Laranja"></button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="habitFrequency">Frequência</label>
+                    <select id="habitFrequency" name="habitFrequency">
+                        <option value="daily">Diário</option>
+                        <option value="weekdays">Dias úteis (Seg-Sex)</option>
+                        <option value="weekends">Finais de semana</option>
+                        <option value="custom">Personalizado...</option>
+                    </select>
+                </div>
+                <div class="form-group custom-days" id="customDaysGroup" hidden>
+                    <label>Dias da semana</label>
+                    <div class="days-selector" id="daysSelector">
+                        <label class="day-toggle"><input type="checkbox" value="0" checked> Dom</label>
+                        <label class="day-toggle"><input type="checkbox" value="1" checked> Seg</label>
+                        <label class="day-toggle"><input type="checkbox" value="2" checked> Ter</label>
+                        <label class="day-toggle"><input type="checkbox" value="3" checked> Qua</label>
+                        <label class="day-toggle"><input type="checkbox" value="4" checked> Qui</label>
+                        <label class="day-toggle"><input type="checkbox" value="5" checked> Sex</label>
+                        <label class="day-toggle"><input type="checkbox" value="6" checked> Sáb</label>
+                    </div>
+                </div>
+            </div>
+            <footer class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="cancelBtn">Cancelar</button>
+                <button type="submit" class="btn btn-primary" id="saveBtn">Salvar</button>
+            </footer>
+            <input type="hidden" name="habitId" id="habitId">
+        </form>
+    </dialog>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
